@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The notification icon is looked up by name at runtime, so the release
+     resource shrinker would otherwise delete it and notification init fails. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_budget,@mipmap/ic_launcher" />
