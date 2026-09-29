@@ -3,7 +3,7 @@ name: Import ZIP on Same Branch
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - '**.zip'
 
