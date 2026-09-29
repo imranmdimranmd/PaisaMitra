@@ -1,0 +1,66 @@
+name: build-apk
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.zip'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Install Java 17
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # 3. Install Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.1'
+          channel: stable
+          cache: true
+
+      # 4. Repair/generate any missing Android platform files (gradlew, etc.)
+      #    without touching existing customizations.
+      - name: Ensure Android platform files
+        run: flutter create --platforms=android .
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      # 5. Check versions
+      - name: Flutter Doctor
+        run: |
+          flutter --version
+          dart --version
+          java -version
+
+      # 6. Download Flutter dependencies
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # 7. Build APK
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      # 8. Upload the built APK directly
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BudgetBudy-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
