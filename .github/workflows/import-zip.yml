@@ -1,0 +1,110 @@
+name: Import ZIP on Same Branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  import-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pushed branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - name: Locate and stage uploaded ZIP
+        id: input
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t zip_files < <(find . -maxdepth 2 -type f -iname '*.zip' -not -path './.git/*' -print)
+
+          if [ "${#zip_files[@]}" -eq 0 ]; then
+            echo 'No ZIP file was found.' >&2
+            exit 1
+          fi
+          if [ "${#zip_files[@]}" -gt 1 ]; then
+            echo 'More than one ZIP file was found. Upload only one ZIP at a time.' >&2
+            printf '%s\n' "${zip_files[@]}" >&2
+            exit 1
+          fi
+
+          zip_file="${zip_files[0]}"
+          mkdir -p /tmp/import-stage
+          cp "$zip_file" /tmp/import-stage/upload.zip
+          echo "zip_file=$zip_file" >> "$GITHUB_OUTPUT"
+
+      - name: Stage workflows and remove existing files
+        shell: bash
+        env:
+          ZIP_FILE: ${{ steps.input.outputs.zip_file }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/import-stage/repository-github
+          cp -a .github /tmp/import-stage/repository-github
+          zip_name="$(basename "$ZIP_FILE")"
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name "$zip_name" \
+            -exec rm -rf {} +
+
+      - name: Extract ZIP into the branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/import-stage/extracted
+          mkdir -p /tmp/import-stage/extracted
+          unzip -q -o /tmp/import-stage/upload.zip -d /tmp/import-stage/extracted
+
+          shopt -s nullglob dotglob
+          entries=(/tmp/import-stage/extracted/*)
+          if [ "${#entries[@]}" -eq 1 ] && [ -d "${entries[0]}" ]; then
+            source_dir="${entries[0]}"
+          else
+            source_dir=/tmp/import-stage/extracted
+          fi
+
+          # Keep the branch's existing GitHub workflows; do not import .github from the ZIP.
+          rm -rf "$source_dir/.github"
+          cp -a "$source_dir"/. .
+          rm -rf .github
+          cp -a /tmp/import-stage/repository-github .github
+
+      - name: Delete uploaded ZIP
+        shell: bash
+        env:
+          ZIP_FILE: ${{ steps.input.outputs.zip_file }}
+        run: |
+          set -euo pipefail
+          rm -f "$ZIP_FILE"
+
+      - name: Commit and push extracted code to the same branch
+        shell: bash
+        env:
+          BRANCH: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --local user.name 'github-actions[bot]'
+          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+
+          git commit -m "Extract uploaded ZIP on $BRANCH [skip ci]"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch origin "$BRANCH"
+          git push --force-with-lease origin "HEAD:$BRANCH"
