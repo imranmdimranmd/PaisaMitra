@@ -10,6 +10,8 @@ import './screens/categories_screen.dart';
 import './screens/backup_restore_screen.dart';
 import './screens/budgets_screen.dart';
 import './screens/income_screen.dart';
+import './screens/security_screen.dart';
+import './widgets/pin_gate.dart';
 import './services/expense_notification_service.dart';
 
 import 'package:provider/provider.dart';
@@ -24,14 +26,35 @@ void main() async {
   ]);
 
   // Not awaited: notification setup must never block the first frame.
-  // Tapping the notification returns to Home, the Transactions screen.
-  ExpenseNotificationService.instance.initialize(
-    onTap: () {
-      navigatorKey.currentState?.popUntil((route) => route.isFirst);
-    },
-  );
+  ExpenseNotificationService.instance
+      .initialize(onTarget: _handleNotificationTarget);
 
   runApp(MyApp());
+}
+
+/// Runs [action] as soon as the Navigator exists (matters on a cold start
+/// from the notification, when the UI isn't built yet).
+void _whenNavigatorReady(void Function(NavigatorState nav) action,
+    [int tries = 0]) {
+  final nav = navigatorKey.currentState;
+  if (nav != null) {
+    action(nav);
+  } else if (tries < 100) {
+    Future.delayed(const Duration(milliseconds: 100),
+        () => _whenNavigatorReady(action, tries + 1));
+  }
+}
+
+void _handleNotificationTarget(NotificationTarget target) {
+  _whenNavigatorReady((nav) {
+    nav.popUntil((route) => route.isFirst); // Home = transactions
+    if (target == NotificationTarget.addIncome) {
+      nav.push(MaterialPageRoute(
+          builder: (_) => const NewTransaction(initialIsIncome: true)));
+    } else if (target == NotificationTarget.addExpense) {
+      nav.push(MaterialPageRoute(builder: (_) => const NewTransaction()));
+    }
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -83,7 +106,9 @@ class MyApp extends StatelessWidget {
               NewTransaction.routeName: (_) => NewTransaction(),
               CategoriesScreen.routeName: (_) => const CategoriesScreen(),
               BudgetsScreen.routeName: (_) => const BudgetsScreen(),
-              IncomeScreen.routeName: (_) => const IncomeScreen(),
+              IncomeScreen.routeName: (_) =>
+                  const PinGate(title: 'Income', child: IncomeScreen()),
+              SecurityScreen.routeName: (_) => const SecurityScreen(),
               BackupRestoreScreen.routeName: (_) => const BackupRestoreScreen(),
             },
           );

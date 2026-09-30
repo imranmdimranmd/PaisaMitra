@@ -3,6 +3,7 @@ import 'package:paisa_mitra/screens/categories_screen.dart';
 import 'package:paisa_mitra/screens/backup_restore_screen.dart';
 import 'package:paisa_mitra/screens/budgets_screen.dart';
 import 'package:paisa_mitra/screens/income_screen.dart';
+import 'package:paisa_mitra/screens/security_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -70,6 +71,11 @@ class AppDrawer extends StatelessWidget {
                     leading: const Icon(Icons.trending_up),
                     title: const Text("Income"),
                     onTap: () => Navigator.of(context).pushNamed(IncomeScreen.routeName),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.lock_outline),
+                    title: const Text("Security (PIN)"),
+                    onTap: () => Navigator.of(context).pushNamed(SecurityScreen.routeName),
                   ),
                   ListTile(
                     leading: const Icon(Icons.backup_outlined),

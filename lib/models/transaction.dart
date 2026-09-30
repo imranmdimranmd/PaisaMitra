@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../DBhelp/dbhelper.dart';
-import '../services/expense_notification_service.dart';
 
 class Transaction {
   final String id;
@@ -53,22 +52,10 @@ class Transactions with ChangeNotifier {
   List<Transaction> get expenses =>
       _transactions.where((item) => !item.isIncome).toList();
 
-  Future<void> _refreshNotification() async {
-    final now = DateTime.now();
-    final thisMonth = _transactions
-        .where((t) => t.date.year == now.year && t.date.month == now.month)
-        .toList();
-    ExpenseNotificationService.instance.showSummary(
-      expense: getTotal(thisMonth),
-      income: getTotalIncome(thisMonth),
-    );
-  }
-
   void addTransactions(Transaction transaction) {
     _transactions.add(transaction);
     notifyListeners();
     DBHelper.insert(transaction);
-    _refreshNotification();
   }
 
   void updateTransaction(Transaction transaction) {
@@ -78,7 +65,6 @@ class Transactions with ChangeNotifier {
     }
     notifyListeners();
     DBHelper.insert(transaction);
-    _refreshNotification();
   }
 
   List<Transaction> monthlyTransactions(String month, String year) {
@@ -130,7 +116,6 @@ class Transactions with ChangeNotifier {
         .toList();
     _transactions.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
-    _refreshNotification();
   }
 
   void deleteTransaction(String id) {
@@ -138,7 +123,6 @@ class Transactions with ChangeNotifier {
     _transactions.remove(item);
     notifyListeners();
     DBHelper.delete(id);
-    _refreshNotification();
   }
 
   List<Map<String, Object>> firstSixMonthsTransValues(
