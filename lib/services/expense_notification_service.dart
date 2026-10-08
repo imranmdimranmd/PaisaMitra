@@ -150,29 +150,8 @@ class ExpenseNotificationService {
     const title = 'Paisa Mitra';
     const body = 'Tap a button to add a new income or expense.';
 
-    final android = _notifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-
-    if (!_serviceStarted && android != null) {
-      // Foreground service => notification stays even if the user swipes.
-      try {
-        await android.startForegroundService(
-          notificationId,
-          title,
-          body,
-          notificationDetails: _details,
-          payload: payload,
-          foregroundServiceTypes: {
-            AndroidServiceForegroundType.foregroundServiceTypeSpecialUse,
-          },
-        );
-        _serviceStarted = true;
-        return;
-      } catch (e) {
-        debugPrint('Foreground service failed, using plain notification: $e');
-      }
-    }
-
+    // Foreground service removed (crash test): show a plain ongoing
+    // notification instead.
     await _notifications.show(
       notificationId,
       title,
