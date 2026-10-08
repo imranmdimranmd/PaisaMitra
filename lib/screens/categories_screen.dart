@@ -154,6 +154,29 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
+  Future<void> _deleteCategory(String category) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+            'Delete "$category" and its subcategories? Existing transactions keep their category name.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await context.read<Categories>().remove(category);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,23 +231,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 'Other' is the hard-coded fallback category used
-                          // elsewhere when adding a transaction, so it isn't
-                          // renamed or removed from here.
-                          if (category != 'Other') ...[
-                            IconButton(
-                              tooltip: 'Edit category',
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _editCategory(category),
-                            ),
-                            IconButton(
-                              tooltip: 'Delete category',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async {
-                                await categories.remove(category);
-                              },
-                            ),
-                          ],
+                          IconButton(
+                            tooltip: 'Edit category',
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editCategory(category),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete category',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _deleteCategory(category),
+                          ),
                         ],
                       ),
                       children: [

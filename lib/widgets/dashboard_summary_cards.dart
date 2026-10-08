@@ -51,15 +51,6 @@ class DashboardSummaryCards extends StatelessWidget {
             child: _card(
                 context, 'Top Category', topCategory, Icons.pie_chart),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _card(
-              context,
-              'Income',
-              '₹${transactions.getTotalIncome(transactions.transactions)}',
-              Icons.trending_up,
-            ),
-          ),
         ],
       ),
     );

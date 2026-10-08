@@ -139,11 +139,11 @@ class DBHelper {
 
   static Future<int> deleteCategory(String name) async {
     final db = await DBHelper.getDatabase();
-    return db.delete(
-      'categories',
-      where: 'name = ? AND isDefault = 0',
-      whereArgs: [name],
-    );
+    return db.transaction((txn) async {
+      await txn.delete('subcategories',
+          where: 'category = ?', whereArgs: [name]);
+      return txn.delete('categories', where: 'name = ?', whereArgs: [name]);
+    });
   }
 
   /// Renames a category and cascades the rename to every subcategory and
@@ -214,7 +214,7 @@ class DBHelper {
     final db = await DBHelper.getDatabase();
     return db.delete(
       'subcategories',
-      where: 'category = ? AND name = ? AND isDefault = 0',
+      where: 'category = ? AND name = ?',
       whereArgs: [category, name],
     );
   }
